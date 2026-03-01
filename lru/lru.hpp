@@ -5,6 +5,7 @@
 #include "exceptions.hpp"
 #include "class-integer.hpp"
 #include "class-matrix.hpp"
+#include <vector>
 class Hash {
 public:
 	unsigned int operator () (Integer lhs) const {
@@ -21,79 +22,130 @@ public:
 
 namespace sjtu {
 template<class T> class double_list{
-public:
-	/**
-	 * elements
-	 * add whatever you want
-	*/
+	struct node {
+		T data;
+		node *prev, *next;
 
+		node(const T &x, node *p = nullptr, node *n = nullptr)
+			: data(x), prev(p), next(n) {}
+		node() : prev(nullptr), next(nullptr) {}
+	};
+
+	node *head, *tail;
+	int currentLength = 0;
+public:
 // --------------------------
 	/**
 	 * the follows are constructors and destructors
 	 * you can also add some if needed.
 	*/
 	double_list(){
+		head = new node();
+		tail = new node();
+		head->next = tail;
+		tail->prev = head;
+		currentLength = 0;
 	}
 	double_list(const double_list<T> &other){
+		this->head = other.head;
+		this->tail = other.tail;
+		this->currentLength = other.currentLength;
 	}
 	~double_list(){
+		if (currentLength != 0) {
+			node *p = head->next;
+			while (p != tail) {
+				node *tmp = p;
+				p = p->next;
+				delete tmp;
+			}
+		}
+		delete head;
+		delete tail;
 	}
 
 	class iterator{
 	public:
-    	/**
-		 * elements
-		 * add whatever you want
-		*/
+    	node *ptr;
+		const double_list* check;
+		friend class double_list;
 	    // --------------------------
-        /**
-		 * the follows are constructors and destructors
-		 * you can also add some if needed.
-		*/
-		iterator(){}
+
+		iterator(node* p = nullptr , const double_list* c = nullptr) : ptr(p) , check(c) {}
 		iterator(const iterator &t){
+			ptr = t.ptr;
 		}
-		~iterator(){}
-        /**
-		 * iter++
-		 */
+		~iterator() = default;
+
+
+		iterator& operator++() {
+			if (this->ptr == check->tail) {
+				throw sjtu::index_out_of_bound();
+			}
+			ptr = ptr->next;
+			return *this;
+		}
 		iterator operator++(int) {
+			if (this->ptr == check->tail) {
+				throw sjtu::index_out_of_bound();
+			}
+			iterator tmp = *this;
+			ptr = ptr->next;
+			return tmp;
 		}
-        /**
-		 * ++iter
-		 */
-		iterator &operator++() {
+
+		iterator& operator--() {
+			if (this->ptr == check->head) {
+				throw sjtu::index_out_of_bound();
+			}
+			ptr = ptr->prev;
+			return *this;
 		}
-        /**
-		 * iter--
-		 */
 		iterator operator--(int) {
-		}
-        /**
-		 * --iter
-		 */
-		iterator &operator--() {
+			if (this->ptr == check->head) {
+				throw sjtu::index_out_of_bound();
+			}
+			iterator tmp = *this;
+			ptr = ptr->prev;
+			return tmp;
 		}
 		/**
 		 * if the iter didn't point to a value
 		 * throw " invalid"
 		*/
 		T &operator*() const {
+			if (!ptr) {
+				throw sjtu::invalid_iterator();
+			}
+			return ptr->data;
 		}
         /**
          * other operation
         */
 		T *operator->() const noexcept {
+			if (!ptr) {
+				throw sjtu::invalid_iterator();
+			}
+			return &ptr->data;
 		}
 		bool operator==(const iterator &rhs) const {
+			if (!ptr || !rhs.ptr) {
+				throw sjtu::invalid_iterator();
+			}
+			return this->ptr == rhs.ptr;
     	}
 		bool operator!=(const iterator &rhs) const {
+			if (!ptr || !rhs.ptr) {
+				throw sjtu::invalid_iterator();
+			}
+			return this->ptr != rhs.ptr;
 		}
 	};
 	/**
 	 * return an iterator to the beginning
 	 */
 	iterator begin(){
+		return iterator(head->next,this);
 	}
 	/**
 	 * return an iterator to the ending
@@ -101,6 +153,7 @@ public:
 	 * just after the last element.
 	 */
 	iterator end(){
+		return iterator(tail,this);
 	}
 	/**
 	 * if the iter didn't point to anything, do nothing,
@@ -114,24 +167,65 @@ public:
 	 *  don't contain 2nd elememt.
 	*/
 	iterator erase(iterator pos){
+		node *p = pos.ptr;
+		iterator ret(p->next,this);
+
+		p->prev->next = p->next;
+		p->next->prev = p->prev;
+
+		delete p;
+		--currentLength;
+		return ret;
 	}
 
 	/**
 	 * the following are operations of double list
 	*/
 	void insert_head(const T &val){
+		node *beg = head->next;
+		node new_node(val,head,beg);
+
+		head->next = new_node;
+		beg->prev = new_node;
+
+		++currentLength;
 	}
+
 	void insert_tail(const T &val){
+		node *p = tail->prev;
+		node new_node(val,p,tail);
+
+		tail->prev = new_node;
+		p->next = new_node;
+
+		++currentLength;
 	}
+
 	void delete_head(){
+		node *p = head->next;
+
+		head->next = p->next;
+		p->next->prev = head;
+
+		delete p;
+		--currentLength;
 	}
+
 	void delete_tail(){
+		node *p = tail->prev;
+
+		tail->prev = p->prev;
+		p->prev->next = tail;
+
+		delete p;
+		--currentLength;
 	}
 	/**
 	 * if didn't contain anything, return true, 
 	 * otherwise false.
 	 */
 	bool empty(){
+		return  currentLength == 0;
 	}
 };
 
@@ -143,10 +237,21 @@ template<
 > class hashmap{
 public:
 	using value_type = pair<const Key, T>;
-	/**
-	 * elements
-	 * add whatever you want
-	*/
+
+	std::vector<double_list<value_type>> buckets;
+
+	size_t current_size = 0;
+
+	Hash hasher;
+	Equal equal_op;
+
+	size_t get_bucket_index(const Key& key) const {
+
+		size_t hash_code = hasher(key);
+
+		return hash_code % buckets.size();
+	}
+
 
 // --------------------------
 
@@ -164,11 +269,12 @@ public:
 	}
 
 	class iterator{
+
+		hashmap* check_map;
+		int bucket_idx;
+		double_list::iterator
+
 	public:
-    	/**
-         * elements
-         * add whatever you want
-        */
 // --------------------------
         /**
          * the follows are constructors and destructors
