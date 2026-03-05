@@ -133,14 +133,14 @@ public:
 		}
 
 		iterator& operator--() {
-			if (this->ptr == check->head) {
+			if (this->ptr == check->head || this->ptr == check->head->next) {
 				throw sjtu::index_out_of_bound("double list , it--");
 			}
 			ptr = ptr->prev;
 			return *this;
 		}
 		iterator operator--(int) {
-			if (this->ptr == check->head) {
+			if (this->ptr == check->head || this->ptr == check->head->next) {
 				throw sjtu::index_out_of_bound("double list , it--");
 			}
 			iterator tmp = *this;
@@ -152,7 +152,7 @@ public:
 		 * throw " invalid"
 		*/
 		T &operator*() const {
-			if (!ptr) {
+			if (!ptr || ptr == check->tail || ptr == check->head) {
 				throw sjtu::invalid_iterator("double list , if the iter didn't point to a value,*");
 			}
 			return ptr->data;
@@ -906,6 +906,9 @@ public:
 		}
 
 		value_type &operator*() const {
+			if (!ptr.ptr || !ptr.check || ptr.ptr == ptr.check->tail || ptr.ptr == ptr.check->head) {
+				throw sjtu::invalid_iterator();
+			}
 			return *ptr;
 		}
 		value_type *operator->() const noexcept {
@@ -967,6 +970,9 @@ public:
 		}
 
 		const value_type &operator*() const {
+			if (!ptr.ptr || !ptr.check || ptr.ptr == ptr.check->tail || ptr.ptr == ptr.check->head) {
+				throw sjtu::invalid_iterator();
+			}
 			return *ptr;
 		}
 		const value_type *operator->() const noexcept {
