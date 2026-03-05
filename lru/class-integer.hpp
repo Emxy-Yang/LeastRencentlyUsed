@@ -7,6 +7,7 @@ public:
 	int val;
 	
 	Integer(int val) : val(val) {counter++;}
+	Integer(): val(0){}
 	~Integer() {counter--;}
 
 	Integer(const Integer &rhs) {
