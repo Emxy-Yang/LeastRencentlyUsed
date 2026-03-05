@@ -60,6 +60,17 @@ public:
 			p = p->next;
 		}
 	}
+	double_list& operator=(const double_list<T> &other) {
+		if (this == &other) return *this;
+		clear();
+
+		node *p = other.head->next;
+		while (p != other.tail) {
+			insert_tail(p->data);
+			p = p->next;
+		}
+		return *this;
+	}
 	~double_list(){
 		if (currentLength != 0) {
 			node *p = head->next;
@@ -318,7 +329,7 @@ public:
 		  hasher(other.hasher), equal_op(other.equal_op) {}
 
 	virtual ~hashmap() {
-		hashmap<Key, T, Hash, Equal>::clear();
+		//hashmap<Key, T, Hash, Equal>::clear();
 		// for (auto p : buckets) {
 		// 	delete p.head;
 		// 	delete p.tail;
@@ -991,7 +1002,7 @@ public:
 	}
 
 	~linked_hashmap() {
-		linked_hashmap<Key, T, Hash, Equal>::clear();
+		//linked_hashmap<Key, T, Hash, Equal>::clear();
 	}
 
 	linked_hashmap & operator=(const linked_hashmap &other) {

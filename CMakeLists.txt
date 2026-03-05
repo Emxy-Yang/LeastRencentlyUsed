@@ -11,5 +11,5 @@ add_executable(LRU
         lru/utility.hpp
         lru/exceptions.hpp
         lru/lru.hpp
-        test/1.cpp
+        test/6.cpp
 )
