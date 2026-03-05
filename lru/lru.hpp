@@ -48,9 +48,17 @@ public:
 		currentLength = 0;
 	}
 	double_list(const double_list<T> &other){
-		this->head = other.head;
-		this->tail = other.tail;
-		this->currentLength = other.currentLength;
+		head = new node();
+		tail = new node();
+		head->next = tail;
+		tail->prev = head;
+		currentLength = 0;
+
+		node *p = other.head->next;
+		while (p != other.tail) {
+			insert_tail(p->data);
+			p = p->next;
+		}
 	}
 	~double_list(){
 		if (currentLength != 0) {
@@ -223,20 +231,20 @@ public:
 
 	void insert_head(const T &val){
 		node *beg = head->next;
-		node new_node(val,head,beg);
+		node *new_node = new node(val, head, beg);
 
-		head->next = &new_node;
-		beg->prev = &new_node;
+		head->next = new_node;
+		beg->prev = new_node;
 
 		++currentLength;
 	}
 
 	void insert_tail(const T &val){
 		node *p = tail->prev;
-		node new_node(val,p,tail);
+		node *new_node = new node(val, p, tail);
 
-		tail->prev = &new_node;
-		p->next = &new_node;
+		tail->prev = new_node;
+		p->next = new_node;
 
 		++currentLength;
 	}
@@ -382,7 +390,7 @@ public:
 
 	virtual void clear(){
 		if (current_size != 0) {
-			for (auto l : buckets) {
+			for (auto &l : buckets) {
 				l.clear();
 			}
 			current_size = 0;
